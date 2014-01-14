@@ -100,7 +100,7 @@
         settingsViewController.modalInPopover = NO;
         
         UINavigationController* contentViewController = [[UINavigationController alloc] initWithRootViewController:settingsViewController];
-        
+        [WYPopoverBackgroundView appearance].popoverOriginInsets = UIEdgeInsetsMake(-10.0, -10.0, -10.0, -10.0);
         settingsPopoverController = [[WYPopoverController alloc] initWithContentViewController:contentViewController];
         settingsPopoverController.delegate = self;
         settingsPopoverController.passthroughViews = @[btn];

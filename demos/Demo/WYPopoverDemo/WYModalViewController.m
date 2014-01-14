@@ -57,12 +57,13 @@
         settingsViewController.modalInPopover = NO;
         
         UINavigationController* contentViewController = [[UINavigationController alloc] initWithRootViewController:settingsViewController];
-        
+        		
         settingsPopoverController = [[WYPopoverController alloc] initWithContentViewController:contentViewController];
         settingsPopoverController.delegate = self;
         settingsPopoverController.passthroughViews = @[btn];
         settingsPopoverController.popoverLayoutMargins = UIEdgeInsetsMake(10, 10, 10, 10);
         settingsPopoverController.wantsDefaultContentAppearance = NO;
+		
         
         [settingsPopoverController presentPopoverFromRect:btn.bounds
                                                    inView:btn

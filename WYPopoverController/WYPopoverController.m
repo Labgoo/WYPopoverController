@@ -21,20 +21,20 @@
  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+ */
 
 #import "WYPopoverController.h"
 
 #import <objc/runtime.h>
 
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
-    #define WY_BASE_SDK_7_ENABLED
+#define WY_BASE_SDK_7_ENABLED
 #endif
 
 #ifdef DEBUG
-    #define WY_LOG(fmt, ...)		NSLog((@"%s (%d) : " fmt), __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define WY_LOG(fmt, ...)		NSLog((@"%s (%d) : " fmt), __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__)
 #else
-    #define WY_LOG(...)
+#define WY_LOG(...)
 #endif
 
 #define WY_IS_IOS_EQUAL_TO(v)                  ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] == NSOrderedSame)
@@ -428,7 +428,7 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     }
     
     CGContextRestoreGState(context);
-
+	
     CGGradientRelease(fillGradient);
     CGColorSpaceRelease(colorSpace);
 }
@@ -443,30 +443,6 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
 
 @end
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-@protocol WYPopoverOverlayViewDelegate;
-
-@interface WYPopoverOverlayView : UIView
-
-@property(nonatomic, assign) id <WYPopoverOverlayViewDelegate> delegate;
-@property(nonatomic, assign) BOOL testHits;
-@property(nonatomic, unsafe_unretained) NSArray *passthroughViews;
-
-@end
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#pragma mark
-#pragma mark - WYPopoverOverlayViewDelegate
-
-@protocol WYPopoverOverlayViewDelegate <NSObject>
-
-@optional
-- (void)popoverOverlayView:(WYPopoverOverlayView*)overlayView didTouchAtPoint:(CGPoint)point;
-
-@end
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -554,8 +530,6 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
 - (CGRect)outerRect:(CGRect)rect arrowDirection:(WYPopoverArrowDirection)aArrowDirection;
 - (CGRect)innerRect:(CGRect)rect arrowDirection:(WYPopoverArrowDirection)aArrowDirection;
 - (CGRect)arrowRect:(CGRect)rect arrowDirection:(WYPopoverArrowDirection)aArrowDirection;
-
-- (id)initWithContentSize:(CGSize)contentSize;
 
 - (BOOL)isTouchedAtPoint:(CGPoint)point;
 
@@ -798,7 +772,7 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     innerView.gradientHeight = self.frame.size.height - 2 * outerShadowBlurRadius;
     innerView.gradientTopPosition = contentView.frame.origin.y - self.outerShadowInsets.top;
     innerView.wantsDefaultContentAppearance = wantsDefaultContentAppearance;
-
+	
     [self insertSubview:innerView aboveSubview:contentView];
     
     innerView.frame = CGRectIntegral(contentView.frame);
@@ -930,6 +904,22 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     
     return result;
 }
+
+- (void)setViewContentInsets:(UIEdgeInsets)aViewContentInsets {
+	viewContentInsets = aViewContentInsets;
+	[self.layer setNeedsDisplay];
+}
+
+- (void)setFillTopColor:(UIColor *)aFillTopColor {
+	fillTopColor = aFillTopColor;
+	[self.layer setNeedsDisplay];
+}
+
+- (void)setFillBottomColor:(UIColor *)aFillBottomColor {
+	fillBottomColor = aFillBottomColor;
+	[self.layer setNeedsDisplay];
+}
+
 
 - (UIColor*)fillBottomColor
 {
@@ -1331,7 +1321,6 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     CGRect                   rect;
     UIView                  *inView;
     WYPopoverOverlayView    *overlayView;
-    WYPopoverBackgroundView *containerView;
     WYPopoverArrowDirection  permittedArrowDirections;
     BOOL                     animated;
     BOOL                     isListeningNotifications;
@@ -1373,8 +1362,18 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
 @synthesize wantsDefaultContentAppearance;
 @synthesize isPopoverVisible;
 @synthesize popoverLayoutMargins;
+@synthesize containerView;
 
 - (id)initWithContentViewController:(UIViewController *)aViewController
+{
+    return [self initWithContentViewController:aViewController
+								   overlayView:nil
+								 containerView:nil];
+}
+
+- (id)initWithContentViewController:(UIViewController *)aViewController
+						overlayView:(WYPopoverOverlayView *)anOverlayView
+					  containerView:(WYPopoverBackgroundView *)aContainerView
 {
     self = [super init];
     
@@ -1383,6 +1382,9 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
         viewController = aViewController;
         popoverLayoutMargins = UIEdgeInsetsMake(10, 10, 10, 10);
         keyboardRect = CGRectZero;
+		overlayView = anOverlayView;
+		containerView = aContainerView;
+		containerView.popoverController = self;
     }
     
     return self;
@@ -1401,30 +1403,20 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
 
 - (UIView *)rootView
 {
-    UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
+    UIWindow *result = [[UIApplication sharedApplication] keyWindow];
     
-    int count = keyWindow.subviews.count;
-    
-    UIView *result = keyWindow;
-    
-    if (count > 0)
+    if (result.subviews.count > 0)
     {
-        int lastIndex = count - 1;
-        
-        for (NSInteger i = lastIndex; i >= 0; i--)
+        for (UIView *view in result.subviews)
         {
-            UIView *view = [keyWindow.subviews objectAtIndex:i];
-            
-            //WY_LOG(@"rootView.subview[%i] = %@", i, view);
-            
-            if (!view.isHidden)
+            if(!view.isHidden)
             {
-                result = view;
-                break;
+                return view;
             }
         }
+        // result = [result.subviews lastObject];
     }
-    
+	
     return result;
 }
 
@@ -1445,7 +1437,7 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
         result = [viewController contentSizeForViewInPopover];
 #pragma clang diagnostic pop
     }
-
+	
     return result;
 }
 
@@ -1478,7 +1470,10 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     {
         UINavigationController *navigationController = (UINavigationController *)controller;
         
-        controller = [navigationController visibleViewController];
+        if ([[navigationController viewControllers] count] > 0)
+        {
+            controller = (UIViewController *)[[navigationController viewControllers] objectAtIndex:0];
+        }
     }
     
 #ifdef WY_BASE_SDK_7_ENABLED
@@ -1546,24 +1541,27 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     options = aOptions;
     
     CGSize contentViewSize = self.contentSizeForViewInPopover;
-
+	
     if (overlayView == nil)
     {
         overlayView = [[WYPopoverOverlayView alloc] initWithFrame:self.rootView.bounds];
-        overlayView.autoresizingMask = UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
-        overlayView.autoresizesSubviews = NO;
-        overlayView.userInteractionEnabled = YES;
-        overlayView.delegate = self;
-        overlayView.passthroughViews = passthroughViews;
-        
-        containerView = [[WYPopoverBackgroundView alloc] initWithContentSize:contentViewSize];
-
-        [overlayView addSubview:containerView];
-        
-        containerView.hidden = YES;
-        [self.rootView addSubview:overlayView];
     }
-    
+	
+	[self.rootView addSubview:overlayView];
+	overlayView.autoresizingMask = UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
+	overlayView.autoresizesSubviews = NO;
+	overlayView.userInteractionEnabled = YES;
+	overlayView.delegate = self;
+	overlayView.passthroughViews = passthroughViews;
+	
+	if (!containerView)
+	{
+        containerView = [[WYPopoverBackgroundView alloc] initWithContentSize:contentViewSize];
+	}
+	[overlayView addSubview:containerView];
+	containerView.hidden = YES;
+	
+	
     if (WY_IS_IOS_LESS_THAN(@"6.0") && hasAppearanceProxyAvailable == NO)
     {
         hasAppearanceProxyAvailable = YES;
@@ -1597,10 +1595,16 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
         containerView.innerShadowOffset = appearance.innerShadowOffset;
         containerView.innerCornerRadius = appearance.innerCornerRadius;
         containerView.viewContentInsets = appearance.viewContentInsets;
-
-        overlayView.backgroundColor = appearance.overlayColor;
+		
+		// if it's not a custom view
+		if ([overlayView isMemberOfClass:[WYPopoverOverlayView class]]) {
+			overlayView.backgroundColor = appearance.overlayColor;
+		}
     } else {
-        overlayView.backgroundColor = containerView.overlayColor;
+		// if it's not a custom view
+		if ([overlayView isMemberOfClass:[WYPopoverOverlayView class]]) {
+			overlayView.backgroundColor = containerView.overlayColor;
+		}
     }
     
     [self positionPopover];
@@ -1611,6 +1615,11 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     
     if (animated)
     {
+		// if custom delegate for animation is implemented, we don't want to use animation options
+		if (self.animationDelegate) {
+			options = 0;
+		}
+		
         if ((options & WYPopoverAnimationOptionFade) == WYPopoverAnimationOptionFade)
         {
             containerView.alpha = 0;
@@ -1624,11 +1633,32 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
             transform = CGAffineTransformScale(transform, 0, 0);
             containerView.transform = transform;
         }
-        
-        [UIView animateWithDuration:WY_POPOVER_DEFAULT_ANIMATION_DURATION animations:^{
-            containerView.alpha = 1;
-            containerView.transform = CGAffineTransformIdentity;
+        NSTimeInterval duration = self.duration ?: WY_POPOVER_DEFAULT_ANIMATION_DURATION;
+		if ([self.animationDelegate respondsToSelector:@selector(popoverController:appearing:willAnimateOverlayView:containerView:duration:)]) {
+			[self.animationDelegate popoverController:self
+											appearing:YES
+							   willAnimateOverlayView:overlayView
+										containerView:containerView
+											 duration:duration];
+		}
+		
+        [UIView animateWithDuration:duration animations:^{
+			if ([self.animationDelegate respondsToSelector:@selector(popoverController:appearing:animatesOverlayView:containerView:)]) {
+				[self.animationDelegate popoverController:self
+												appearing:YES
+									  animatesOverlayView:overlayView
+											containerView:containerView];
+			} else {
+				containerView.alpha = 1;
+				containerView.transform = CGAffineTransformIdentity;
+			}
         } completion:^(BOOL finished) {
+			if ([self.animationDelegate respondsToSelector:@selector(popoverController:appearing:didAnimateWithOverlayView:containerView:)]) {
+				[self.animationDelegate popoverController:self
+												appearing:YES
+								didAnimateWithOverlayView:overlayView
+											containerView:containerView];
+			}
             if ([viewController isKindOfClass:[UINavigationController class]] == NO)
             {
                 [viewController viewDidAppear:YES];
@@ -1839,6 +1869,7 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
             
             containerFrame.origin.y += offset;
         }
+		containerFrame.origin.y -= containerView.popoverOriginInsets.bottom;
     }
     
     if (arrowDirection == WYPopoverArrowDirectionUp)
@@ -1850,6 +1881,11 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
         containerFrame.size = containerViewSize;
         containerFrame.size.width = MIN(maxX - minX, containerFrame.size.width);
         containerFrame.size.height = MIN(maxY - minY, containerFrame.size.height);
+		
+		containerFrame.origin.x -= containerView.viewContentInsets.left;
+		containerFrame.origin.y -= containerView.viewContentInsets.top;
+		containerFrame.size.width += containerView.viewContentInsets.left + containerView.viewContentInsets.right;
+		containerFrame.size.height += containerView.viewContentInsets.top + containerView.viewContentInsets.bottom;
         
         containerView.frame = containerFrame;
         
@@ -1887,6 +1923,7 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
                 containerFrame.size.height = minContainerSize.height;
             }
         }
+		containerFrame.origin.y += containerView.popoverOriginInsets.top;
     }
     
     if (arrowDirection == WYPopoverArrowDirectionRight)
@@ -1939,6 +1976,7 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
         }
         
         containerView.arrowOffset = offset;
+		containerFrame.origin.x -= containerView.popoverOriginInsets.right;
     }
     
     if (arrowDirection == WYPopoverArrowDirectionLeft)
@@ -1987,6 +2025,8 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
         }
         
         containerView.arrowOffset = offset;
+
+		containerFrame.origin.x += containerView.popoverOriginInsets.left;
     }
     
     if (arrowDirection == WYPopoverArrowDirectionNone)
@@ -2006,7 +2046,8 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
         
         containerView.arrowOffset = offset;
     }
-    
+	
+	
     containerView.frame = CGRectIntegral(containerFrame);
     
     containerView.wantsDefaultContentAppearance = wantsDefaultContentAppearance;
@@ -2024,7 +2065,7 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     if (overlayView == nil) return;
     
     void (^completionBlock)(BOOL);
-          
+	
     completionBlock = ^(BOOL finished) {
         
         [overlayView removeFromSuperview];
@@ -2073,9 +2114,33 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     
     if (aAnimated)
     {
-        [UIView animateWithDuration:WY_POPOVER_DEFAULT_ANIMATION_DURATION animations:^{
-            containerView.alpha = 0;
+		BOOL hasWillAnimateDelegate = [self.animationDelegate respondsToSelector:@selector(popoverController:appearing:willAnimateOverlayView:containerView:duration:)];
+		NSTimeInterval duration = self.duration ?: WY_POPOVER_DEFAULT_ANIMATION_DURATION;
+		if (hasWillAnimateDelegate) {
+			[self.animationDelegate popoverController:self
+											appearing:NO
+							   willAnimateOverlayView:overlayView
+										containerView:containerView
+											 duration:duration];
+		}
+		
+        [UIView animateWithDuration:duration animations:^{
+			BOOL hasAnimatesDelegate = [self.animationDelegate respondsToSelector:@selector(popoverController:appearing:animatesOverlayView:containerView:)];
+			if (hasAnimatesDelegate) {
+				[self.animationDelegate popoverController:self
+												appearing:NO
+									  animatesOverlayView:overlayView
+											containerView:containerView];
+			} else if (!(hasWillAnimateDelegate || hasAnimatesDelegate)) {
+				containerView.alpha = 0;
+			}
         } completion:^(BOOL finished) {
+			if ([self.animationDelegate respondsToSelector:@selector(popoverController:appearing:didAnimateWithOverlayView:containerView:)]) {
+				[self.animationDelegate popoverController:self
+												appearing:NO
+								didAnimateWithOverlayView:overlayView
+											containerView:containerView];
+			}
             completionBlock(finished);
         }];
     }
@@ -2151,7 +2216,7 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
         area.arrowDirection = WYPopoverArrowDirectionRight;
         [areas addObject:area];
     }
-
+	
     if ((arrowDirections & WYPopoverArrowDirectionNone) == WYPopoverArrowDirectionNone)
     {
         area = [[WYPopoverArea alloc] init];
@@ -2285,9 +2350,6 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
 
 #pragma mark Inline functions
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-variable"
-
 static NSString* NSStringFromOrientation(NSInteger orientation) {
     NSString* result = @"Unknown";
     
@@ -2310,8 +2372,6 @@ static NSString* NSStringFromOrientation(NSInteger orientation) {
     
     return result;
 }
-
-#pragma clang diagnostic pop
 
 static CGFloat GetStatusBarHeight() {
     UIInterfaceOrientation orienation = [[UIApplication sharedApplication] statusBarOrientation];
@@ -2383,7 +2443,7 @@ static CGFloat GetStatusBarHeight() {
 
 - (void)keyboardWillShow:(NSNotification *)notification
 {
-    NSDictionary *info = [notification userInfo];
+    NSDictionary* info = [notification userInfo];
     keyboardRect = [[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue];
     [self positionPopover];
     [containerView setNeedsDisplay];
