@@ -736,9 +736,13 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
 
 - (void)setViewController:(UIViewController *)viewController
 {
+	if (contentView == viewController.view) {
+		return;
+	}
+	
     contentView = viewController.view;
     
-    contentView.frame = CGRectIntegral(CGRectMake(0, 0, self.bounds.size.width, 100));
+    contentView.frame = CGRectIntegral((CGRect){CGPointZero, self.bounds.size});
     
     [self addSubview:contentView];
     
@@ -1557,8 +1561,9 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
 	
     if (overlayView == nil)
     {
-        overlayView = [[WYPopoverOverlayView alloc] initWithFrame:self.rootView.bounds];
+        overlayView = [[WYPopoverOverlayView alloc] init];
     }
+	overlayView.frame = self.rootView.bounds;
 	
 	[self.rootView addSubview:overlayView];
 	overlayView.autoresizingMask = UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
