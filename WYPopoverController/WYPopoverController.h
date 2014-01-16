@@ -93,8 +93,8 @@ typedef NS_OPTIONS(NSUInteger, WYPopoverAnimationOptions) {
 - (void)presentPopoverAsDialogAnimated:(BOOL)animated
                                options:(WYPopoverAnimationOptions)options;
 
-- (void)dismissPopoverAnimated:(BOOL)animated;
-
+- (void)dismissPopoverAnimated:(BOOL)animated
+					completion:(void(^)(void))completion;
 @end
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -178,6 +178,8 @@ didAnimateWithOverlayView:(UIView *)overlayView
 @property (nonatomic, assign) CGFloat  innerShadowBlurRadius    UI_APPEARANCE_SELECTOR;
 @property (nonatomic, assign) CGSize   innerShadowOffset        UI_APPEARANCE_SELECTOR;
 @property (nonatomic, assign) CGFloat  innerCornerRadius        UI_APPEARANCE_SELECTOR;
+
+@property (nonatomic, strong) UIColor *arrowColor				UI_APPEARANCE_SELECTOR;
 
 /**
  To position popover about tapped component

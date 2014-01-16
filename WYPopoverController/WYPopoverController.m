@@ -573,6 +573,7 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
 @synthesize navigationBarHeight;
 @synthesize wantsDefaultContentAppearance;
 @synthesize defaultTintColor;
+@synthesize arrowColor;
 
 @synthesize outerShadowInsets;
 
@@ -910,6 +911,11 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
 	[self.layer setNeedsDisplay];
 }
 
+- (void)setArrowColor:(UIColor *)anArrowColor {
+	arrowColor = anArrowColor;
+	[self.layer setNeedsDisplay];
+}
+
 - (void)setFillTopColor:(UIColor *)aFillTopColor {
 	fillTopColor = aFillTopColor;
 	[self.layer setNeedsDisplay];
@@ -1121,6 +1127,11 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
                                         CGPointMake(CGRectGetMidX(outerRectBounds), CGRectGetMaxY(outerRectBounds)),
                                         0);
             CGContextEndTransparencyLayer(context);
+			
+			if (self.arrowColor) {
+				[self.arrowColor setFill];
+				[outerRectPath fill];
+			}
         }
         CGContextRestoreGState(context);
         
@@ -1335,7 +1346,9 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
 @property (nonatomic, strong, readonly) UIView  *rootView;
 @property (nonatomic, assign, readonly) CGSize   contentSizeForViewInPopover;
 
-- (void)dismissPopoverAnimated:(BOOL)animated callDelegate:(BOOL)callDelegate;
+- (void)dismissPopoverAnimated:(BOOL)animated
+				  callDelegate:(BOOL)callDelegate
+					completion:(void(^)(void))completion;
 
 - (WYPopoverArrowDirection)arrowDirectionForRect:(CGRect)aRect
                                           inView:(UIView*)aView
@@ -2025,7 +2038,7 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
         }
         
         containerView.arrowOffset = offset;
-
+		
 		containerFrame.origin.x += containerView.popoverOriginInsets.left;
     }
     
@@ -2055,12 +2068,14 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     [containerView setViewController:viewController];
 }
 
-- (void)dismissPopoverAnimated:(BOOL)aAnimated
+- (void)dismissPopoverAnimated:(BOOL)aAnimated completion:(void(^)(void))completion
 {
-    [self dismissPopoverAnimated:aAnimated callDelegate:NO];
+    [self dismissPopoverAnimated:aAnimated callDelegate:NO completion:completion];
 }
 
-- (void)dismissPopoverAnimated:(BOOL)aAnimated callDelegate:(BOOL)callDelegate
+- (void)dismissPopoverAnimated:(BOOL)aAnimated
+				  callDelegate:(BOOL)callDelegate
+					completion:(void(^)(void))completion
 {
     if (overlayView == nil) return;
     
@@ -2083,6 +2098,10 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
                 [delegate popoverControllerDidDismissPopover:self];
             }
         }
+		
+		if (completion) {
+			completion();
+		}
     };
     
     if (isListeningNotifications == YES)
@@ -2167,7 +2186,7 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
         
         if (shouldDismiss)
         {
-            [self dismissPopoverAnimated:animated callDelegate:YES];
+            [self dismissPopoverAnimated:animated callDelegate:YES completion:nil];
         }
     }
 }
