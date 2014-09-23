@@ -2405,8 +2405,8 @@ static CGFloat GetStatusBarHeight() {
         CGRect statusBarFrame = [[UIApplication sharedApplication] statusBarFrame];
         statusBarHeight = statusBarFrame.size.height;
         
-        if (UIDeviceOrientationIsLandscape(orienation))
-        {
+        if (![[UIScreen mainScreen] respondsToSelector:@selector(coordinateSpace)] &&
+            UIDeviceOrientationIsLandscape(orienation)) {
             statusBarHeight = statusBarFrame.size.width;
         }
     }
