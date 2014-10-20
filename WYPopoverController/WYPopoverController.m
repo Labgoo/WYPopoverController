@@ -46,66 +46,6 @@
 #define WY_IS_IOS_LESS_THAN(v)                 ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] == NSOrderedAscending)
 
 
-@interface UINavigationController (WYPopover)
-
-@property(nonatomic, assign, getter = isEmbedInPopover) BOOL embedInPopover;
-
-@end
-
-@implementation UINavigationController (WYPopover)
-
-static char const * const UINavigationControllerEmbedInPopoverTagKey = "UINavigationControllerEmbedInPopoverTagKey";
-
-@dynamic embedInPopover;
-
-+ (void)load
-{
-    Method original, swizzle;
-    
-    original = class_getInstanceMethod(self, @selector(pushViewController:animated:));
-    
-    swizzle = class_getInstanceMethod(self, @selector(sizzled_pushViewController:animated:));
-    
-    method_exchangeImplementations(original, swizzle);
-}
-
-- (BOOL)isEmbedInPopover
-{
-    BOOL result = NO;
-    
-    NSNumber *value = objc_getAssociatedObject(self, UINavigationControllerEmbedInPopoverTagKey);
-    
-    if (value)
-    {
-        result = [value boolValue];
-    }
-    
-    return result;
-}
-
-- (void)setEmbedInPopover:(BOOL)value
-{
-    objc_setAssociatedObject(self, UINavigationControllerEmbedInPopoverTagKey, [NSNumber numberWithBool:value], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
-
-- (void)sizzled_pushViewController:(UIViewController *)viewController animated:(BOOL)animated
-{
-    if (self.isEmbedInPopover)
-    {
-#ifdef WY_BASE_SDK_7_ENABLED
-        if ([viewController respondsToSelector:@selector(setEdgesForExtendedLayout:)])
-        {
-            viewController.edgesForExtendedLayout = UIRectEdgeNone;
-        }
-#endif
-    }
-    
-    [self sizzled_pushViewController:viewController animated:animated];
-}
-
-@end
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 @interface WYPopoverArea : NSObject
@@ -1482,17 +1422,6 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     CGSize result = CGSizeZero;
     
     UIViewController *controller = viewController;
-    
-    if ([controller isKindOfClass:[UINavigationController class]])
-    {
-        UINavigationController *navigationController = (UINavigationController *)controller;
-        
-        if ([[navigationController viewControllers] count] > 0)
-        {
-            controller = (UIViewController *)[[navigationController viewControllers] objectAtIndex:0];
-        }
-    }
-    
 #ifdef WY_BASE_SDK_7_ENABLED
     if ([controller respondsToSelector:@selector(preferredContentSize)])
     {
@@ -1777,26 +1706,6 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
 
 - (void)setPopoverNavigationBarBackgroundImage
 {
-    if (wantsDefaultContentAppearance == NO && [viewController isKindOfClass:[UINavigationController class]])
-    {
-        UINavigationController *navigationController = (UINavigationController *)viewController;
-        navigationController.embedInPopover = YES;
-        
-        if ([navigationController viewControllers] && [[navigationController viewControllers] count] > 0)
-        {
-#ifdef WY_BASE_SDK_7_ENABLED
-            UIViewController *firstViewController = (UIViewController *)[[navigationController viewControllers] objectAtIndex:0];
-            
-            if ([firstViewController respondsToSelector:@selector(setEdgesForExtendedLayout:)])
-            {
-                [firstViewController setEdgesForExtendedLayout:UIRectEdgeNone];
-            }
-#endif
-        }
-        
-        [navigationController.navigationBar setBackgroundImage:[UIImage imageWithColor:[UIColor clearColor]] forBarMetrics:UIBarMetricsDefault];
-    }
-    
     viewController.view.clipsToBounds = YES;
     
     if (containerView.borderWidth == 0)
@@ -2426,17 +2335,6 @@ static CGFloat GetStatusBarHeight() {
     if (isInterfaceOrientationChanging == NO) return;
     
     isInterfaceOrientationChanging = NO;
-    
-    if ([viewController isKindOfClass:[UINavigationController class]])
-    {
-        UINavigationController* navigationController = (UINavigationController*)viewController;
-        
-        if (navigationController.navigationBarHidden == NO)
-        {
-            navigationController.navigationBarHidden = YES;
-            navigationController.navigationBarHidden = NO;
-        }
-    }
     
     if (barButtonItem)
     {
