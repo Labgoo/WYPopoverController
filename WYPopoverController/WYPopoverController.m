@@ -1336,6 +1336,7 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     
     if (self)
     {
+        self.ignoreKeyboardAppearance = YES;
         viewController = aViewController;
         popoverLayoutMargins = UIEdgeInsetsMake(10, 10, 10, 10);
         keyboardRect = CGRectZero;
@@ -2366,7 +2367,7 @@ static CGFloat GetStatusBarHeight() {
 - (void)keyboardWillShow:(NSNotification *)notification
 {
     NSDictionary* info = [notification userInfo];
-    keyboardRect = [[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue];
+    keyboardRect = self.ignoreKeyboardAppearance ? CGRectZero : [[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue];
     [self positionPopover];
     [containerView setNeedsDisplay];
 }

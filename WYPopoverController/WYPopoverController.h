@@ -62,6 +62,13 @@ typedef NS_OPTIONS(NSUInteger, WYPopoverAnimationOptions) {
 @property (nonatomic, strong, readonly) WYPopoverBackgroundView *containerView;
 @property (nonatomic, assign) NSTimeInterval duration;
 
+/**
+ If @c YES will not resize popover when keyboard appears, disappears or changes
+ the size (docks, undocks).
+ @default @c YES
+ */
+@property (nonatomic, assign) BOOL ignoreKeyboardAppearance;
+
 - (id)initWithContentViewController:(UIViewController *)viewController;
 
 - (id)initWithContentViewController:(UIViewController *)aViewController
