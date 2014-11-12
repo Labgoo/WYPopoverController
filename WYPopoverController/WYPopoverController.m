@@ -2366,17 +2366,21 @@ static CGFloat GetStatusBarHeight() {
 
 - (void)keyboardWillShow:(NSNotification *)notification
 {
-    NSDictionary* info = [notification userInfo];
-    keyboardRect = self.ignoreKeyboardAppearance ? CGRectZero : [[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue];
-    [self positionPopover];
-    [containerView setNeedsDisplay];
+    if (!self.ignoreKeyboardAppearance) {
+        NSDictionary* info = [notification userInfo];
+        keyboardRect = self.ignoreKeyboardAppearance ? CGRectZero : [[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue];
+        [self positionPopover];
+        [containerView setNeedsDisplay];
+    }
 }
 
 - (void)keyboardWillHide:(NSNotification *)notification
 {
-    keyboardRect = CGRectZero;
-    [self positionPopover];
-    [containerView setNeedsDisplay];
+    if (!self.ignoreKeyboardAppearance) {
+    	keyboardRect = CGRectZero;
+    	[self positionPopover];
+    	[containerView setNeedsDisplay];
+    }
 }
 
 #pragma mark Memory management
