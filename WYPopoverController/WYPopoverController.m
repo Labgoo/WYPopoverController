@@ -1287,8 +1287,8 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     WYPopoverAnimationOptions options;
 }
 
-@property (nonatomic, strong, readonly) UIView  *rootView;
 @property (nonatomic, assign, readonly) CGSize   contentSizeForViewInPopover;
+@property (nonatomic, weak) UIView *presentingView;
 
 - (void)dismissPopoverAnimated:(BOOL)animated
 				  callDelegate:(BOOL)callDelegate
@@ -1359,8 +1359,7 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     return viewController;
 }
 
-- (UIView *)rootView
-{
+- (UIView *)_rootView {
     UIWindow *result = [[UIApplication sharedApplication] keyWindow];
     
     if (result.subviews.count > 0)
@@ -1477,10 +1476,25 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
                         inView:(UIView *)aView
       permittedArrowDirections:(WYPopoverArrowDirection)arrowDirections
                       animated:(BOOL)aAnimated
+                       options:(WYPopoverAnimationOptions)aOptions {
+    UIView *presentingView = [self _rootView];
+    [self presentPopoverFromRect:aRect
+                          inView:aView
+                  presentingView:presentingView
+        permittedArrowDirections:arrowDirections
+                        animated:aAnimated
+                         options:aOptions];
+}
+
+- (void)presentPopoverFromRect:(CGRect)aRect
+                        inView:(UIView *)aView
+                presentingView:(UIView *)presentingView
+      permittedArrowDirections:(WYPopoverArrowDirection)arrowDirections
+                      animated:(BOOL)aAnimated
                        options:(WYPopoverAnimationOptions)aOptions
 {
     NSAssert((arrowDirections != WYPopoverArrowDirectionUnknown), @"WYPopoverArrowDirection must not be UNKNOWN");
-    
+    self.presentingView = presentingView;
     rect = aRect;
     inView = aView;
     permittedArrowDirections = arrowDirections;
@@ -1493,9 +1507,9 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     {
         overlayView = [[WYPopoverOverlayView alloc] init];
     }
-	overlayView.frame = self.rootView.bounds;
+	overlayView.frame = self.presentingView.bounds;
 	
-	[self.rootView addSubview:overlayView];
+	[self.presentingView addSubview:overlayView];
 	overlayView.autoresizingMask = UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
 	overlayView.autoresizesSubviews = NO;
 	overlayView.userInteractionEnabled = YES;
@@ -1717,6 +1731,7 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
 
 - (void)positionPopover
 {
+    NSAssert(self.presentingView, @"Has not been presented yet!");
     CGSize contentViewSize = self.contentSizeForViewInPopover;
     
     CGRect viewFrame;
@@ -1728,14 +1743,14 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
     WYPopoverArrowDirection arrowDirection = WYPopoverArrowDirectionUnknown;
     UIInterfaceOrientation orienation = [[UIApplication sharedApplication] statusBarOrientation];
     
-    overlayView.frame = self.rootView.bounds;
+    overlayView.frame = self.presentingView.bounds;
     
     viewFrame = [overlayView convertRect:rect fromView:inView];
     
     minX = popoverLayoutMargins.left;
-    maxX = self.rootView.bounds.size.width - popoverLayoutMargins.right;
+    maxX = self.presentingView.bounds.size.width - popoverLayoutMargins.right;
     minY = GetStatusBarHeight() + popoverLayoutMargins.top;
-    maxY = self.rootView.bounds.size.height - popoverLayoutMargins.bottom;
+    maxY = self.presentingView.bounds.size.height - popoverLayoutMargins.bottom;
     
     // Which direction ?
     //
@@ -2238,14 +2253,15 @@ static CGFloat edgeSizeFromCornerRadius(CGFloat cornerRadius) {
                inView:(UIView*)aView
           arrowHeight:(CGFloat)arrowHeight
        arrowDirection:(WYPopoverArrowDirection)arrowDirection
-{
+{    
+    NSAssert(self.presentingView, @"Has not been presented yet");
     CGRect viewFrame = [overlayView convertRect:rect fromView:inView];
     CGFloat minX, maxX, minY, maxY = 0;
     
     minX = popoverLayoutMargins.left;
-    maxX = self.rootView.bounds.size.width - popoverLayoutMargins.right;
+    maxX = self.presentingView.bounds.size.width - popoverLayoutMargins.right;
     minY = GetStatusBarHeight() + popoverLayoutMargins.top;
-    maxY = self.rootView.bounds.size.height - popoverLayoutMargins.bottom;
+    maxY = self.presentingView.bounds.size.height - popoverLayoutMargins.bottom;
     
     CGSize result = CGSizeZero;
     

@@ -97,6 +97,13 @@ typedef NS_OPTIONS(NSUInteger, WYPopoverAnimationOptions) {
                                animated:(BOOL)animated
                                 options:(WYPopoverAnimationOptions)options;
 
+- (void)presentPopoverFromRect:(CGRect)rect
+                        inView:(UIView *)view
+                presentingView:(UIView *)view
+      permittedArrowDirections:(WYPopoverArrowDirection)arrowDirections
+                      animated:(BOOL)animated
+                       options:(WYPopoverAnimationOptions)options;
+
 - (void)presentPopoverAsDialogAnimated:(BOOL)animated
                                options:(WYPopoverAnimationOptions)options;
 
